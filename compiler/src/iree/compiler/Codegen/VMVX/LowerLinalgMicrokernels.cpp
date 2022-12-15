@@ -181,26 +181,18 @@ class StridedBufferAnalysis {
     desc = StridedBufferDescriptor();
     desc->memRefType = buffer.getType().cast<MemRefType>();
 
-    MemRefType bufferType = getType();
-    int rank = bufferType.getRank();
+    int rank = getType().getRank();
     SmallVector<Type> sizeStrideTypes;
     IndexType indexType = builder.getIndexType();
     for (int i = 0; i < rank; ++i) {
       sizeStrideTypes.push_back(indexType);
     }
 
-    auto memrefType = MemRefType::get({}, bufferType.getElementType(),
-                                      MemRefLayoutAttrInterface{},
-                                      bufferType.getMemorySpace());
-    auto op = builder.create<memref::ExtractStridedMetadataOp>(
-        loc, memrefType, builder.getIndexType(), sizeStrideTypes,
-        sizeStrideTypes, buffer);
+    auto op = builder.create<IREE::VMVX::GetBufferDescriptorOp>(
+        loc, builder.getType<IREE::Util::BufferType>(), builder.getIndexType(),
+        sizeStrideTypes, sizeStrideTypes, buffer);
 
-    desc->baseBuffer = builder
-                           .create<IREE::VMVX::GetBufferPointerOp>(
-                               loc, builder.getType<IREE::Util::BufferType>(),
-                               op.getBaseBuffer())
-                           .getResult();
+    desc->baseBuffer = op.getBaseBuffer();
     desc->offset = op.getOffset();
     desc->sizes = op.getSizes();
     desc->strides = op.getStrides();
