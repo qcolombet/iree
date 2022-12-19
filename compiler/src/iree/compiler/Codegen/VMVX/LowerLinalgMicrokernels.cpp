@@ -195,9 +195,13 @@ class StridedBufferAnalysis {
     auto op = builder.create<memref::ExtractStridedMetadataOp>(
         loc, memrefType, builder.getIndexType(), sizeStrideTypes,
         sizeStrideTypes, buffer);
-
+    // desc->baseBuffer = builder
+    //                        .create<mlir::UnrealizedConversionCastOp>(
+    //                            loc, builder.getType<IREE::Util::BufferType>(),
+    //                            op.getBaseBuffer())
+    //                        .getResult(0);
     desc->baseBuffer = builder
-                           .create<IREE::VMVX::GetBufferPointerOp>(
+                           .create<IREE::Util::BufferWrapFromMemRefOp>(
                                loc, builder.getType<IREE::Util::BufferType>(),
                                op.getBaseBuffer())
                            .getResult();

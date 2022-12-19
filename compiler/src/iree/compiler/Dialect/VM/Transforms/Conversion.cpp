@@ -81,6 +81,14 @@ class ConversionPass
   }
 
   void runOnOperation() override {
+      SmallVector<Operation *> toRemove;
+      getOperation()->walk([&](IREE::Util::BufferUnwrapToMemRefOp op) {
+        if (op->use_empty())
+          toRemove.push_back(op);
+      });
+      for (auto op : toRemove)
+        op->erase();
+
     if (getOperation().getBody()->empty()) return;
 
     auto *context = &getContext();

@@ -1166,6 +1166,38 @@ def Util_BufferStoreOp : Util_Op<"buffer.store", [
   }];
 }
 
+def Util_BufferWrapFromMemRefOp : Util_Op<"buffer.wrap_from_memref"> {
+  let summary = "Wrap a memref into a !util.buffer";
+  let description = [{
+    The main purpose of this op is to convert a memref type into a
+    !util.buffer. This is just to make the type system happy during
+    the lowering phases.
+  }];
+
+  let arguments = (ins AnyMemRef:$source);
+  let results = (outs Util_BufferType:$base_buffer);
+
+  let assemblyFormat = [{
+    $source `:` type($source) `->` type(results) attr-dict
+  }];
+}
+
+def Util_BufferUnwrapToMemRefOp : Util_Op<"util.buffer_unwrap_to_memref"> {
+  let summary = "Unwrap !util.buffer into a memref";
+  let description = [{
+    The main purpose of this op is to convert a !util.buffer back in
+    the memref space. This is just to make the type system happy during
+    the lowering phases.
+  }];
+
+  let arguments = (ins Util_BufferType:$source);
+  let results = (outs AnyMemRef:$base_buffer);
+
+  let assemblyFormat = [{
+    $source `:` type($source) `->` type(results) attr-dict
+  }];
+}
+
 //===----------------------------------------------------------------------===//
 // Status
 //===----------------------------------------------------------------------===//

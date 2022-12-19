@@ -261,6 +261,31 @@ struct ConvertMemRefStoreOp : public OpConversionPattern<memref::StoreOp> {
   }
 };
 
+class ConvertMemRefReinterpretCastOp
+    : public OpConversionPattern<memref::ReinterpretCastOp> {
+public:
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(memref::ReinterpretCastOp reinterpretCast,
+                  OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto binding = reinterpretCast.getSource()
+                       .getDefiningOp<IREE::Util::BufferUnwrapToMemRefOp>();
+
+      if (binding) {
+        assert(adaptor.getSource().getType() == binding.getSource().getType());
+        rewriter.replaceOp(reinterpretCast, binding.getSource());
+      return success();
+    }
+     auto unrealizedCast = rewriter.create<IREE::Util::BufferWrapFromMemRefOp>(
+         reinterpretCast.getLoc(), adaptor.getSource().getType(),
+         reinterpretCast.getSource());
+    rewriter.replaceOp(reinterpretCast, unrealizedCast.getResult());
+    // rewriter.replaceOp(reinterpretCast, adaptor.getSource());
+    return success();
+  }
+};
 }  // namespace
 
 void populateMemRefToUtilPatterns(MLIRContext *context,
@@ -284,12 +309,15 @@ void populateMemRefToUtilPatterns(MLIRContext *context,
 
   patterns
       .insert<FoldAsNoOp<bufferization::ToMemrefOp>,
+              FoldAsNoOp<IREE::Util::BufferWrapFromMemRefOp>,
+              FoldAsNoOp<IREE::Util::BufferUnwrapToMemRefOp>,
               ElideNoOp<memref::AssumeAlignmentOp>, FoldAsNoOp<memref::CastOp>>(
           typeConverter, context);
-  patterns.insert<ConvertMemRefGlobalOp, ConvertMemRefGetGlobalOp,
-                  ConvertMemRefAllocaOp, ConvertMemRefDimOp,
-                  ConvertMemRefLoadOp, ConvertMemRefStoreOp>(typeConverter,
-                                                             context);
+  patterns
+      .insert<ConvertMemRefGlobalOp, ConvertMemRefGetGlobalOp,
+              ConvertMemRefAllocaOp, ConvertMemRefDimOp, ConvertMemRefLoadOp,
+              ConvertMemRefStoreOp, ConvertMemRefReinterpretCastOp>(
+          typeConverter, context);
 }
 
 }  // namespace iree_compiler
