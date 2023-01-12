@@ -278,9 +278,9 @@ struct FromAllocation : public OpRewritePattern<GetBufferDescriptorOp> {
 
 // MemRef globals are always static shaped and reference a non-offset
 // buffer.
-struct FromGlobal : public OpRewritePattern<GetBufferDescriptorOp> {
+struct FromGlobal : public OpRewritePattern<memref::ExtractStridedMetadataOp> {
   using OpRewritePattern::OpRewritePattern;
-  LogicalResult matchAndRewrite(GetBufferDescriptorOp op,
+  LogicalResult matchAndRewrite(memref::ExtractStridedMetadataOp op,
                                 PatternRewriter &rewriter) const override {
     auto global = op.getSource().getDefiningOp<memref::GetGlobalOp>();
     if (!global) return failure();
@@ -329,12 +329,14 @@ struct FromGlobal : public OpRewritePattern<GetBufferDescriptorOp> {
     op.getOffset().replaceAllUsesWith(indexSet.get(0));
 
     // Base buffer.
-    op.getBaseBuffer().replaceAllUsesWith(
-        rewriter
-            .create<UnrealizedConversionCastOp>(
-                loc, op.getBaseBuffer().getType(), global.getResult())
-            .getResult(0));
-
+    if (memRefType == op.getBaseBuffer().getType())
+      op.getBaseBuffer().replaceAllUsesWith(global.getResult());
+    else
+      op.getBaseBuffer().replaceAllUsesWith(
+          rewriter.create<memref::ReinterpretCastOp>(
+              loc, op.getBaseBuffer().getType().cast<MemRefType>(), global.getResult(), (int64_t)0,
+              /*sizes=*/ArrayRef<int64_t>(),
+              /*strides=*/ArrayRef<int64_t>()));
     rewriter.eraseOp(op);
     return success();
   }
@@ -351,7 +353,8 @@ class ResolveBufferDescriptorsPass
 
   void runOnOperation() override {
     RewritePatternSet patterns(&getContext());
-    patterns.insert<  // FromAllocation, FromGlobal,
+    patterns.insert<  // FromAllocation,
+      FromGlobal,
         //FromRawInterfaceBindingBuffer,
         ExtractStridedMetadataFromHalInterfaceBindingSubspan
 

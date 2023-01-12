@@ -729,6 +729,17 @@ std::unique_ptr<OperationPass<func::FuncOp>> createLinalgStrategyPeelPass(
 std::unique_ptr<OperationPass<func::FuncOp>> createLinalgStrategyVectorizePass(
     StringRef opName, const LinalgExt::LinalgTransformationFilter &filter,
     bool padVectorize) {
+  llvm::dbgs() << "\nopName: " << opName << "\n";
+  llvm::dbgs() << "filter: " << filter.filters.size() << "\n";
+  llvm::dbgs() << "matchDisjunction: " << filter.matchDisjunction.size()
+               << "\n";
+  for (const auto &disj : filter.matchDisjunction)
+    llvm::dbgs() << "disj: " << disj << '\n';
+  llvm::dbgs() << "replacement: " << filter.replacement.has_value() << "\n";
+  if (filter.replacement)
+    llvm::dbgs() << "replacement: " << *filter.replacement << '\n';
+  llvm::dbgs() << "matchByDefault: " << filter.matchByDefault << "\n";
+  llvm::dbgs() << "padVectorize: " << padVectorize << "\n";
   return std::make_unique<LinalgStrategyVectorizePass>(opName, filter,
                                                        padVectorize);
 }

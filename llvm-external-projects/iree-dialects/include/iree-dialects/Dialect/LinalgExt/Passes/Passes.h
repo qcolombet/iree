@@ -74,7 +74,7 @@ struct LinalgTransformationFilter {
     return *this;
   }
 
-private:
+public:
   SmallVector<FilterFunction> filters;
   SmallVector<StringAttr> matchDisjunction;
   Optional<StringAttr> replacement;

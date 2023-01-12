@@ -316,6 +316,7 @@ def ConvertToLLVM :
             /*default=*/"false",
            "Specifies if FP add and mult reductions can be reordered">,
   ];
+  let dependentDialects = ["AffineDialect", "memref::MemRefDialect", "arith::ArithDialect"];
 }
 
 def LLVMCPUEmitVectorizationRemarks :
