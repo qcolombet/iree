@@ -486,6 +486,20 @@ static void addLowerToLLVMGPUPasses(OpPassManager &pm, bool useROCM) {
 
   pm.addNestedPass<func::FuncOp>(createLLVMGPUVectorLoweringPass());
 
+  // THIS NEEDS TO RUN BEFORE SCF ->CF ON
+  pm.addPass(createExtractAddressComputationPass());
+  pm.addNestedPass<func::FuncOp>(memref::createExpandOpsPass());
+  pm.addPass(memref::createExpandStridedMetadataPass());
+  // Hoist loop invariant variables to give decompose affine pass the right loop
+  // dependencies.
+  pm.addPass(createLoopInvariantCodeMotionPass());
+  // Decompose the `affine.apply`s.
+  pm.addPass(createDecomposeAffineOpsPass());
+  // Hoist the resulting decompositions.
+  pm.addPass(createLoopInvariantCodeMotionPass());
+  pm.addPass(createLowerAffinePass());
+  // THIS NEEDS TO RUN BEFORE SCF ->CF OFF
+
   // SCF -> STD
   pm.addNestedPass<func::FuncOp>(createConvertSCFToCFPass());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
@@ -498,8 +512,6 @@ static void addLowerToLLVMGPUPasses(OpPassManager &pm, bool useROCM) {
   pm.addNestedPass<func::FuncOp>(createPolynomialApproximationPass());
 
   pm.addNestedPass<func::FuncOp>(arith::createArithExpandOpsPass());
-  pm.addNestedPass<func::FuncOp>(memref::createExpandOpsPass());
-  pm.addPass(memref::createExpandStridedMetadataPass());
   pm.addPass(createLowerAffinePass());
   // Strip out the debug info for the kernel as CUDA driver doesn't diggest PTX
   // debug info well.

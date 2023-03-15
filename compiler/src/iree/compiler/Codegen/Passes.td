@@ -47,6 +47,28 @@ def DecomposeLinalgGeneric :
   let constructor = "mlir::iree_compiler::createDecomposeLinalgGenericPass()";
 }
 
+def DecomposeAffineOps: Pass<"decompose-affine-ops"> {
+  let summary = "TODO";
+  let description = [{
+     TODO
+  }];
+  let constructor = "mlir::iree_compiler::createDecomposeAffineOpsPass()";
+  let dependentDialects = [
+      "AffineDialect"
+  ];
+}
+
+def ExtractAddressComputation: Pass<"extract-address-computation"> {
+  let summary = "TODO";
+  let description = [{
+     TODO
+  }];
+  let constructor = "mlir::iree_compiler::createExtractAddressComputationPass()";
+  let dependentDialects = [
+      "memref::MemRefDialect", "nvgpu::NVGPUDialect"
+  ];
+}
+
 def FixupSubspanWithOffsets :
     Pass<"iree-codegen-fixup-subspan-with-offsets", "func::FuncOp"> {
   let summary = "Fixes up `hal.interface.binding.subspan` ops with offsets";

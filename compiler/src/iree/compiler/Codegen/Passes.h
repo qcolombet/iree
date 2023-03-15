@@ -63,6 +63,13 @@ createBufferizeCopyOnlyDispatchesPass();
 // one op in the body.
 std::unique_ptr<Pass> createDecomposeLinalgGenericPass();
 
+// Decompose affine.apply operations into sub affine.apply that can be
+// hoisted in different loops.
+std::unique_ptr<Pass> createDecomposeAffineOpsPass();
+
+// TODO
+std::unique_ptr<Pass> createExtractAddressComputationPass();
+
 // Fixes resturn types of `hal.interface.binding.subspan` ops with non-zero
 // offsets.
 std::unique_ptr<OperationPass<func::FuncOp>>
