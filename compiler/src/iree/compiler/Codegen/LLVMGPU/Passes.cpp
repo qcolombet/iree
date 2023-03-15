@@ -459,6 +459,21 @@ void addGPUSimpleDistributePassPipeline(OpPassManager &pm) {
       createRemoveSingleIterationLoopPass());
 }
 
+// TODO:
+static void addLowerAndOptimzeAddressComputation(OpPassManager &pm) {
+  pm.addPass(createExtractAddressComputationPass());
+  pm.addNestedPass<func::FuncOp>(memref::createExpandOpsPass());
+  pm.addPass(memref::createExpandStridedMetadataPass());
+  // Hoist loop invariant variables to give decompose affine pass the right loop
+  // dependencies.
+  pm.addPass(createLoopInvariantCodeMotionPass());
+  // Decompose the `affine.apply`s.
+  pm.addPass(createDecomposeAffineOpsPass());
+  // Hoist the resulting decompositions.
+  pm.addPass(createLoopInvariantCodeMotionPass());
+  pm.addPass(createLowerAffinePass());
+}
+
 static void addLowerToLLVMGPUPasses(OpPassManager &pm, bool useROCM) {
   pm.addPass(createCanonicalizerPass());
   pm.addPass(createCSEPass());
@@ -487,17 +502,7 @@ static void addLowerToLLVMGPUPasses(OpPassManager &pm, bool useROCM) {
   pm.addNestedPass<func::FuncOp>(createLLVMGPUVectorLoweringPass());
 
   // THIS NEEDS TO RUN BEFORE SCF ->CF ON
-  pm.addPass(createExtractAddressComputationPass());
-  pm.addNestedPass<func::FuncOp>(memref::createExpandOpsPass());
-  pm.addPass(memref::createExpandStridedMetadataPass());
-  // Hoist loop invariant variables to give decompose affine pass the right loop
-  // dependencies.
-  pm.addPass(createLoopInvariantCodeMotionPass());
-  // Decompose the `affine.apply`s.
-  pm.addPass(createDecomposeAffineOpsPass());
-  // Hoist the resulting decompositions.
-  pm.addPass(createLoopInvariantCodeMotionPass());
-  pm.addPass(createLowerAffinePass());
+  addLowerAndOptimzeAddressComputation(pm);
   // THIS NEEDS TO RUN BEFORE SCF ->CF OFF
 
   // SCF -> STD
