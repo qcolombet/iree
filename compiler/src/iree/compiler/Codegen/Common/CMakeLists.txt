@@ -121,6 +121,7 @@ iree_cc_library(
     IREELinalgExtTransforms
     LLVMSupport
     MLIRAffineDialect
+    MLIRAffineTransforms
     MLIRAffineUtils
     MLIRAnalysis
     MLIRArithDialect
