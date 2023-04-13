@@ -26,6 +26,8 @@
 namespace mlir {
 namespace iree_compiler {
 
+extern llvm::cl::opt<bool> disableWA;
+
 void ConvertToDynamicSharedMemory(ModuleOp moduleOp) {
   SymbolTableCollection symbolTableCollection;
   // Collect all the adressOfOps to static shared memory globals.
@@ -359,7 +361,7 @@ class ConvertIREEBindingSubspanOp : public ConvertToLLVMPattern {
     // of subspans are handled explicitly through a GEP (and subsequent memref
     // having 0 offset). Once this issue is fixed. The `if` here should be
     // removed.
-    if (adaptor.getByteOffset()) {
+    if (!disableWA && adaptor.getByteOffset()) {
       auto i8Type = typeConverter->convertType(rewriter.getI8Type());
       llvmBufferBasePtr = rewriter.create<LLVM::GEPOp>(
           loc, llvmBufferBasePtr.getType(), i8Type, llvmBufferBasePtr,
@@ -391,7 +393,7 @@ class ConvertIREEBindingSubspanOp : public ConvertToLLVMPattern {
         // TODO(#12933): Because of regressions in CUDA backend the `memref`
         // type of a subspan should never have dynamic offsets. Remove this
         // assert once the issue is fixed.
-        assert(0 &&
+        assert(disableWA &&
                "non-zero offset for result of subspan op is unexpected. See "
                "#12933");
 

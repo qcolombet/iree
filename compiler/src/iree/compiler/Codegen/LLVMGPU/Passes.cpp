@@ -37,6 +37,10 @@ static llvm::cl::opt<unsigned> logSwizzleTile(
     "iree-codegen-log-swizzle-tile", llvm::cl::desc("log swizzle tile value"),
     llvm::cl::init(0));
 
+llvm::cl::opt<bool> disableWA(DEBUG_TYPE "-disable-wa", llvm::cl::init(false));
+static llvm::cl::opt<bool> disableExtractAddressComputation(
+    DEBUG_TYPE "-disable-extract-address-computation", llvm::cl::init(false));
+
 static FailureOr<Value> gpuAllocationFn(OpBuilder &builder, Location loc,
                                         MemRefType memRefType,
                                         ValueRange dynamicSizes,
@@ -82,7 +86,7 @@ static void addBufferizePasses(OpPassManager &passManager) {
   // type. Remove once the bug is fixed.
   addIREEComprehensiveBufferizePasses(
       passManager, allocationFn, deallocationFn, memcpyFn,
-      /*embedSubspanOffsetIntoMemRefType=*/false);
+      /*embedSubspanOffsetIntoMemRefType=*/disableWA);
   passManager.addPass(createCanonicalizerPass());
   passManager.addPass(createCSEPass());
   // TODO: Remove the following pass the plumb support for #hal.descriptor_type
@@ -458,6 +462,8 @@ void addGPUSimpleDistributePassPipeline(OpPassManager &pm) {
 // information about loops.
 // Note: This needs to run before SCF -> CF.
 static void addLowerAndOptimzeAddressComputation(OpPassManager &pm) {
+  if (disableExtractAddressComputation)
+    return;
   pm.addPass(createExtractAddressComputationGPUPass());
   pm.addNestedPass<func::FuncOp>(memref::createExpandOpsPass());
   pm.addPass(memref::createExpandStridedMetadataPass());
@@ -559,7 +565,7 @@ void buildLLVMGPUTransformPassPipeline(OpPassManager &pm, bool useROCM) {
   // option to keep a legacy mode of not representing the offset in the
   // type. Remove once the bug is fixed.
   pm.nest<ModuleOp>().addPass(createBufferizeCopyOnlyDispatchesPass(
-      /*embedSubspanOffsetIntoMemRefType=*/false));
+      /*embedSubspanOffsetIntoMemRefType=*/disableWA));
   pm.nest<ModuleOp>().addNestedPass<func::FuncOp>(
       IREE::LinalgExt::createDecomposeSoftmaxPass());
   // Temporary solution to avoid large allocations due to softmax lowering.
